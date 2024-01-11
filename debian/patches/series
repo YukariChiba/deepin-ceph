@@ -17,3 +17,4 @@ fix-CheckCxxAtomic-riscv64.patch
 #do-not-include-mgr_legacy_options.h.patch
 try-fix-fmt-call.patch
 add-mips-support-to-toku-time.patch
+ceph-18.2.0-fmt10-fixes.patch
