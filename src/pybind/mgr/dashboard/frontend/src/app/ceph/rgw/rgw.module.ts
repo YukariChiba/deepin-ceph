@@ -3,20 +3,17 @@ import { NgModule } from '@angular/core';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule, Routes } from '@angular/router';
 
-import { AlertModule } from 'ngx-bootstrap/alert';
-import { BsDropdownModule } from 'ngx-bootstrap/dropdown';
-import { ModalModule } from 'ngx-bootstrap/modal';
-import { TabsModule } from 'ngx-bootstrap/tabs';
-import { TooltipModule } from 'ngx-bootstrap/tooltip';
+import { NgbNavModule, NgbTooltipModule } from '@ng-bootstrap/ng-bootstrap';
+import { NgxPipeFunctionModule } from 'ngx-pipe-function';
 
-import { ActionLabels, URLVerbs } from '../../shared/constants/app.constants';
-import { AuthGuardService } from '../../shared/services/auth-guard.service';
-import { SharedModule } from '../../shared/shared.module';
+import { ActionLabels, URLVerbs } from '~/app/shared/constants/app.constants';
+import { CRUDTableComponent } from '~/app/shared/datatable/crud-table/crud-table.component';
+import { SharedModule } from '~/app/shared/shared.module';
 import { PerformanceCounterModule } from '../performance-counter/performance-counter.module';
-import { Rgw501Component } from './rgw-501/rgw-501.component';
 import { RgwBucketDetailsComponent } from './rgw-bucket-details/rgw-bucket-details.component';
 import { RgwBucketFormComponent } from './rgw-bucket-form/rgw-bucket-form.component';
 import { RgwBucketListComponent } from './rgw-bucket-list/rgw-bucket-list.component';
+import { RgwConfigModalComponent } from './rgw-config-modal/rgw-config-modal.component';
 import { RgwDaemonDetailsComponent } from './rgw-daemon-details/rgw-daemon-details.component';
 import { RgwDaemonListComponent } from './rgw-daemon-list/rgw-daemon-list.component';
 import { RgwUserCapabilityModalComponent } from './rgw-user-capability-modal/rgw-user-capability-modal.component';
@@ -26,32 +23,22 @@ import { RgwUserListComponent } from './rgw-user-list/rgw-user-list.component';
 import { RgwUserS3KeyModalComponent } from './rgw-user-s3-key-modal/rgw-user-s3-key-modal.component';
 import { RgwUserSubuserModalComponent } from './rgw-user-subuser-modal/rgw-user-subuser-modal.component';
 import { RgwUserSwiftKeyModalComponent } from './rgw-user-swift-key-modal/rgw-user-swift-key-modal.component';
+import { RgwUserTabsComponent } from './rgw-user-tabs/rgw-user-tabs.component';
+import { CrudFormComponent } from '~/app/shared/forms/crud-form/crud-form.component';
 
 @NgModule({
-  entryComponents: [
-    RgwDaemonDetailsComponent,
-    RgwBucketDetailsComponent,
-    RgwUserDetailsComponent,
-    RgwUserSwiftKeyModalComponent,
-    RgwUserS3KeyModalComponent,
-    RgwUserCapabilityModalComponent,
-    RgwUserSubuserModalComponent
-  ],
   imports: [
     CommonModule,
     SharedModule,
     FormsModule,
     ReactiveFormsModule,
     PerformanceCounterModule,
-    AlertModule.forRoot(),
-    BsDropdownModule.forRoot(),
-    TabsModule.forRoot(),
-    TooltipModule.forRoot(),
-    ModalModule.forRoot(),
-    RouterModule
+    NgbNavModule,
+    RouterModule,
+    NgbTooltipModule,
+    NgxPipeFunctionModule
   ],
   exports: [
-    Rgw501Component,
     RgwDaemonListComponent,
     RgwDaemonDetailsComponent,
     RgwBucketFormComponent,
@@ -61,7 +48,6 @@ import { RgwUserSwiftKeyModalComponent } from './rgw-user-swift-key-modal/rgw-us
     RgwUserDetailsComponent
   ],
   declarations: [
-    Rgw501Component,
     RgwDaemonListComponent,
     RgwDaemonDetailsComponent,
     RgwBucketFormComponent,
@@ -74,18 +60,18 @@ import { RgwUserSwiftKeyModalComponent } from './rgw-user-swift-key-modal/rgw-us
     RgwUserSwiftKeyModalComponent,
     RgwUserS3KeyModalComponent,
     RgwUserCapabilityModalComponent,
-    RgwUserSubuserModalComponent
+    RgwUserSubuserModalComponent,
+    RgwConfigModalComponent,
+    RgwUserTabsComponent
   ]
 })
 export class RgwModule {}
 
 const routes: Routes = [
   {
-    path: '',
-    redirectTo: 'daemon',
-    pathMatch: 'full'
+    path: '' // Required for a clean reload on daemon selection.
   },
-  { path: 'daemon', component: RgwDaemonListComponent, data: { breadcrumbs: 'Daemons' } },
+  { path: 'daemon', component: RgwDaemonListComponent, data: { breadcrumbs: 'Gateways' } },
   {
     path: 'user',
     data: { breadcrumbs: 'Users' },
@@ -100,6 +86,36 @@ const routes: Routes = [
         path: `${URLVerbs.EDIT}/:uid`,
         component: RgwUserFormComponent,
         data: { breadcrumbs: ActionLabels.EDIT }
+      }
+    ]
+  },
+  {
+    path: 'roles',
+    data: {
+      breadcrumbs: 'Roles',
+      resource: 'api.rgw.roles@1.0',
+      tabs: [
+        {
+          name: 'Users',
+          url: '/rgw/user'
+        },
+        {
+          name: 'Roles',
+          url: '/rgw/roles'
+        }
+      ]
+    },
+    children: [
+      {
+        path: '',
+        component: CRUDTableComponent
+      },
+      {
+        path: URLVerbs.CREATE,
+        component: CrudFormComponent,
+        data: {
+          breadcrumbs: ActionLabels.CREATE
+        }
       }
     ]
   },
@@ -119,12 +135,6 @@ const routes: Routes = [
         data: { breadcrumbs: ActionLabels.EDIT }
       }
     ]
-  },
-  {
-    path: '501/:message',
-    component: Rgw501Component,
-    canActivate: [AuthGuardService],
-    data: { breadcrumbs: 'Object Gateway' }
   }
 ];
 

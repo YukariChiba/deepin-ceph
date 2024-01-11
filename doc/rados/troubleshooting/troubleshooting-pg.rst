@@ -6,7 +6,7 @@ Placement Groups Never Get Clean
 ================================
 
 When you create a cluster and your cluster remains in ``active``,
-``active+remapped`` or ``active+degraded`` status and never achieve an
+``active+remapped`` or ``active+degraded`` status and never achieves an
 ``active+clean`` status, you likely have a problem with your configuration.
 
 You may need to review settings in the `Pool, PG and CRUSH Config Reference`_
@@ -14,6 +14,8 @@ and make appropriate adjustments.
 
 As a general rule, you should run your cluster with more than one OSD and a
 pool size greater than 1 object replica.
+
+.. _one-node-cluster:
 
 One Node Cluster
 ----------------
@@ -26,11 +28,11 @@ Ceph  daemon may cause a deadlock due to issues with the Linux kernel itself
 configuration, in spite of the limitations as described herein.
 
 If you are trying to create a cluster on a single node, you must change the
-default of the ``osd crush chooseleaf type`` setting from ``1`` (meaning
+default of the ``osd_crush_chooseleaf_type`` setting from ``1`` (meaning
 ``host`` or ``node``) to ``0`` (meaning ``osd``) in your Ceph configuration
 file before you create your monitors and OSDs. This tells Ceph that an OSD
 can peer with another OSD on the same host. If you are trying to set up a
-1-node cluster and ``osd crush chooseleaf type`` is greater than ``0``,
+1-node cluster and ``osd_crush_chooseleaf_type`` is greater than ``0``,
 Ceph will try to peer the PGs of one OSD with the PGs of another OSD on
 another node, chassis, rack, row, or even datacenter depending on the setting.
 
@@ -39,9 +41,7 @@ another node, chassis, rack, row, or even datacenter depending on the setting.
    can mount kernel clients within virtual machines (VMs) on a single node.
 
 If you are creating OSDs using a single disk, you must create directories
-for the data manually first. For example::
-
-	ceph-deploy osd create --data {disk} {host}
+for the data manually first.
 
 
 Fewer OSDs than Replicas
@@ -49,12 +49,12 @@ Fewer OSDs than Replicas
 
 If you have brought up two OSDs to an ``up`` and ``in`` state, but you still
 don't see ``active + clean`` placement groups, you may have an
-``osd pool default size`` set to greater than ``2``.
+``osd_pool_default_size`` set to greater than ``2``.
 
 There are a few ways to address this situation. If you want to operate your
 cluster in an ``active + degraded`` state with two replicas, you can set the
-``osd pool default min size`` to ``2`` so that you can write objects in
-an ``active + degraded`` state. You may also set the ``osd pool default size``
+``osd_pool_default_min_size`` to ``2`` so that you can write objects in
+an ``active + degraded`` state. You may also set the ``osd_pool_default_size``
 setting to ``2`` so that you only have two stored replicas (the original and
 one replica), in which case the cluster should achieve an ``active + clean``
 state.
@@ -66,7 +66,7 @@ state.
 Pool Size = 1
 -------------
 
-If you have the ``osd pool default size`` set to ``1``, you will only have
+If you have the ``osd_pool_default_size`` set to ``1``, you will only have
 one copy of the object. OSDs rely on other OSDs to tell them which objects
 they should have. If a first OSD has a copy of an object and there is no
 second copy, then no second OSD can tell the first OSD that it should have
@@ -217,28 +217,55 @@ First, you can identify which objects are unfound with::
 
 .. code-block:: javascript
 
- { "offset": { "oid": "",
-      "key": "",
-      "snapid": 0,
-      "hash": 0,
-      "max": 0},
-  "num_missing": 0,
-  "num_unfound": 0,
-  "objects": [
-     { "oid": "object 1",
-       "key": "",
-       "hash": 0,
-       "max": 0 },
-     ...
-  ],
-  "more": 0}
+  {
+    "num_missing": 1,
+    "num_unfound": 1,
+    "objects": [
+        {
+            "oid": {
+                "oid": "object",
+                "key": "",
+                "snapid": -2,
+                "hash": 2249616407,
+                "max": 0,
+                "pool": 2,
+                "namespace": ""
+            },
+            "need": "43'251",
+            "have": "0'0",
+            "flags": "none",
+            "clean_regions": "clean_offsets: [], clean_omap: 0, new_object: 1",
+            "locations": [
+                "0(3)",
+                "4(2)"
+            ]
+        }
+    ],
+    "state": "NotRecovering",
+    "available_might_have_unfound": true,
+    "might_have_unfound": [
+        {
+            "osd": "2(4)",
+            "status": "osd is down"
+        }
+    ],
+    "more": false
+  }
 
 If there are too many objects to list in a single result, the ``more``
 field will be true and you can query for more.  (Eventually the
 command line tool will hide this from you, but not yet.)
 
 Second, you can identify which OSDs have been probed or might contain
-data::
+data.
+
+At the end of the listing (before ``more`` is false), ``might_have_unfound`` is provided
+when ``available_might_have_unfound`` is true.  This is equivalent to the output
+of ``ceph pg #.# query``.  This eliminates the need to use ``query`` directly.
+The ``might_have_unfound`` information given behaves the same way as described below for ``query``.
+The only difference is that OSDs that have ``already probed`` status are ignored.
+
+Use of ``query``::
 
 	ceph pg 2.4 query
 
@@ -336,7 +363,7 @@ If your cluster is up, but some OSDs are down and you cannot write data,
 check to ensure that you have the minimum number of OSDs running for the
 placement group. If you don't have the minimum number of OSDs running,
 Ceph will not allow you to write data because there is no guarantee
-that Ceph can replicate your data. See ``osd pool default min size``
+that Ceph can replicate your data. See ``osd_pool_default_min_size``
 in the `Pool, PG and CRUSH Config Reference`_ for details.
 
 
@@ -476,7 +503,7 @@ If the Ceph cluster only has 8 OSDs and the erasure coded pool needs
 coded pool that requires less OSDs::
 
      ceph osd erasure-code-profile set myprofile k=5 m=3
-     ceph osd pool create erasurepool 16 16 erasure myprofile
+     ceph osd pool create erasurepool erasure myprofile
 
 or add a new OSDs and the PG will automatically use them.
 
@@ -497,10 +524,7 @@ the rule::
     $ ceph osd crush rule dump erasurepool
     { "rule_id": 1,
       "rule_name": "erasurepool",
-      "ruleset": 1,
       "type": 3,
-      "min_size": 3,
-      "max_size": 20,
       "steps": [
             { "op": "take",
               "item": -1,
@@ -515,7 +539,7 @@ You can resolve the problem by creating a new pool in which PGs are allowed
 to have OSDs residing on the same host with::
 
      ceph osd erasure-code-profile set myprofile crush-failure-domain=osd
-     ceph osd pool create erasurepool 16 16 erasure myprofile
+     ceph osd pool create erasurepool erasure myprofile
 
 CRUSH gives up too soon
 -----------------------
@@ -541,11 +565,9 @@ extracting the crushmap from the cluster so your experiments do not
 modify the Ceph cluster and only work on a local files::
 
     $ ceph osd crush rule dump erasurepool
-    { "rule_name": "erasurepool",
-      "ruleset": 1,
+    { "rule_id": 1,
+      "rule_name": "erasurepool",
       "type": 3,
-      "min_size": 3,
-      "max_size": 20,
       "steps": [
             { "op": "take",
               "item": -1,
@@ -565,7 +587,7 @@ modify the Ceph cluster and only work on a local files::
     bad mapping rule 8 x 173 num_rep 9 result [0,4,6,8,2,1,3,7,2147483647]
 
 Where ``--num-rep`` is the number of OSDs the erasure code CRUSH
-rule needs, ``--rule`` is the value of the ``ruleset`` field
+rule needs, ``--rule`` is the value of the ``rule_id`` field
 displayed by ``ceph osd crush rule dump``.  The test will try mapping
 one million values (i.e. the range defined by ``[--min-x,--max-x]``)
 and must display at least one bad mapping. If it outputs nothing it
@@ -580,14 +602,12 @@ and adding the following line to the rule::
 
     step set_choose_tries 100
 
-The relevant part of of the ``crush.txt`` file should look something
+The relevant part of the ``crush.txt`` file should look something
 like::
 
      rule erasurepool {
-             ruleset 1
+             id 1
              type erasure
-             min_size 3
-             max_size 20
              step set_chooseleaf_tries 5
              step set_choose_tries 100
              step take default

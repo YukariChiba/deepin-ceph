@@ -1,4 +1,9 @@
+// -*- mode:C++; tab-width:8; c-basic-offset:2; indent-tabs-mode:t -*-
+// vim: ts=8 sw=2 smarttab ft=cpp
+//
 #include "rgw_object_lock.h"
+
+using namespace std;
 
 void DefaultRetention::decode_xml(XMLObj *obj) {
   RGWXMLDecoder::decode_xml("Mode", mode, obj, true);
